@@ -1,7 +1,7 @@
 convex-polygon-area
 ===================
 
-Solving arbitrary convex polygon area!using python
+Solving arbitrary concave or convex polygon area!using python
 
 ===================
 
