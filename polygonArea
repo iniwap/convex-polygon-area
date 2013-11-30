@@ -1,0 +1,139 @@
+#--*encoding:utf-8-*-
+#求任意N边(凹凸)多边形面积算法
+#iniwaper@gmail.com
+#autor:iniwap
+
+#例子：(0,0,0),(1,0,0),(2,1,0),(3,0,0),(3,3,0),(0,3,0)
+#(0,0,0),(1,1,0),(2,0,0),(3,1,0),(4,0,0),(5,1,0),(6,0,0),(6,2,0),(0,2,0)
+
+import math
+
+#求向量叉积
+def crossProduct(Ek0,Ek1):
+    #Ek X Ek+1
+    N = (Ek0[1]*Ek1[2]-Ek0[2]*Ek1[1],
+         Ek0[0]*Ek1[2]-Ek0[2]*Ek1[0],
+         Ek0[0]*Ek1[1]-Ek0[1]*Ek1[0])
+    return N
+#判断向量是否平行
+def judgeParallel(Ek0,Ek1):
+    N = crossProduct(Ek0,Ek1)
+    #由于是二维平面内Z=0即共线或者平行
+    if N[2]==0:
+        return True
+    else:
+        return False
+#判断是否凹点
+def judgeConcave(Ek0,Ek1):
+    N = crossProduct(Ek0,Ek1)
+    Nz =N[2]
+    if(Nz<0):#
+        return True
+    else:
+        return False
+#判断分割出的三角形是否合法#有点在三角形内部则不合法#采用面积法
+def judgeTriangleCrossConcavePortion(Vk,vertices):
+    vk0vk1 = (Vk[1][0]-Vk[0][0],
+              Vk[1][1]-Vk[0][1],
+              Vk[1][2]-Vk[0][2])
+    vk1vk2 = (Vk[2][0]-Vk[1][0],
+              Vk[2][1]-Vk[1][1],
+              Vk[2][2]-Vk[1][2])
+    vk2vk0 = (Vk[0][0]-Vk[2][0],
+              Vk[0][1]-Vk[2][1],
+              Vk[0][2]-Vk[2][2])
+    for v in vertices:
+        if v not in Vk:
+            vk0v = (v[0]-Vk[0][0],
+                    v[1]-Vk[0][1],
+                    v[2]-Vk[0][2])
+            vk1v = (v[0]-Vk[1][0],
+                    v[1]-Vk[1][1],
+                    v[2]-Vk[1][2])
+            vk2v = (v[0]-Vk[2][0],
+                    v[1]-Vk[2][1],
+                    v[2]-Vk[2][2])
+            sv0 = calcuArea(vk0v,vk1v)
+            sv1 = calcuArea(vk1v,vk2v)
+            sv2 = calcuArea(vk0v,vk2v)
+            if(calcuArea(vk0vk1,vk1vk2) == sv0+sv1+sv2):
+                return True
+            else:
+                continue
+             
+    return False
+#求三角形面积
+def calcuArea(Ek0,Ek1):
+    #1/2*|Ek0|*|Ek1|*sin(Ek0,Ek1)=1/2*|Ek0XEk1|
+    #N
+    N = crossProduct(Ek0,Ek1)
+    #|N|
+    Nm = math.sqrt(pow(N[0],2)+pow(N[1],2)+pow(N[2],2))
+    Area = 1.0/2*Nm
+    return Area
+#分割多边形
+def splitPolygonToTriangles(vertices):
+    triangles = []
+    v = vertices
+    verticesNum = len(v)
+    k = 0
+    while(verticesNum>3):
+        #判断是否凹边
+        if(k == verticesNum - 2):#本次迭代最后两个点
+            Ek0 = (v[k+1][0] - v[k][0],
+                  v[k+1][1] - v[k][1],
+                  v[k+1][2] - v[k][2])
+            
+            Ek1 = (v[0][0] - v[k+1][0],
+                  v[0][1] - v[k+1][1],
+                  v[0][2] - v[k+1][2])
+            Vk = (v[k],v[k+1],v[0])
+            
+        elif(k == verticesNum - 1):#本次迭代结束#重置继续
+            k = 0
+            verticesNum = len(v)
+            continue
+        else:        
+            Ek0 = (v[k+1][0] - v[k][0],
+                  v[k+1][1] - v[k][1],
+                  v[k+1][2] - v[k][2])
+
+            Ek1 = (v[k+2][0] - v[k+1][0],
+                  v[k+2][1] - v[k+1][1],
+                  v[k+2][2] - v[k+1][2])
+            Vk = (v[k],v[k+1],v[k+2])
+            
+        if(not judgeConcave(Ek0,Ek1) and not judgeTriangleCrossConcavePortion(Vk,v)):
+            triangles.append((Ek0,Ek1))
+            del v[k+1]#剔除中间点#继续计算
+            verticesNum -= 1
+        else:
+            k += 1
+                    
+    #最后一个三角形
+    Ek0 = (v[1][0] - v[0][0],
+           v[1][1] - v[0][1],
+           v[1][2] - v[0][2])
+        
+    Ek1 = (v[2][0] - v[1][0],
+           v[2][1] - v[1][1],
+           v[2][2] - v[1][2])
+    if(not judgeConcave(Ek0,Ek1)):#最后三个点非凹点#否则舍弃   
+        triangles.append((Ek0,Ek1))
+    
+    return triangles
+        
+#获取输入
+def getVertices():
+    V = input("请逆时针输入多边形顶点[格式：(x1,y1,z1),(x2,y2,z2)],逗号分割:\n")
+    return list(V)
+#处理
+if __name__ == "__main__":
+    V = getVertices()
+    totalArea = 0
+    Triangles = splitPolygonToTriangles(V)
+   # print Triangles
+    for i in range(len(Triangles)):
+        totalArea += calcuArea(Triangles[i][0],Triangles[i][1])
+        
+    print totalArea
